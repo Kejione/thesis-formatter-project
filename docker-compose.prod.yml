@@ -7,8 +7,6 @@
 # 3. 查看日志: docker-compose -f docker-compose.prod.yml logs -f
 # ============================================
 
-version: "3.8"
-
 services:
   # ============================================
   # PostgreSQL 数据库
