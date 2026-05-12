@@ -1,0 +1,128 @@
+# ============================================
+# 毕业论文排版系统 - API 生产环境 Dockerfile
+# ============================================
+# 多阶段构建，优化镜像大小和安全性
+# ============================================
+
+# ============================================
+# Stage 1: 构建依赖阶段
+# ============================================
+FROM python:3.11-slim as builder
+
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装构建依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建工作目录
+WORKDIR /build
+
+# 复制依赖文件
+COPY pyproject.toml ./
+
+# 创建虚拟环境并安装依赖
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 安装 Python 依赖
+RUN pip install --upgrade pip && \
+    pip install \
+    fastapi==0.109.0 \
+    uvicorn[standard]==0.27.0 \
+    gunicorn==21.2.0 \
+    sqlalchemy[asyncio]==2.0.25 \
+    asyncpg==0.29.0 \
+    alembic==1.13.1 \
+    redis==5.0.1 \
+    celery==5.3.6 \
+    minio==7.2.0 \
+    python-multipart==0.0.6 \
+    python-jose[cryptography]==3.3.0 \
+    passlib[bcrypt]==1.7.4 \
+    pydantic==2.5.3 \
+    pydantic-settings==2.1.0 \
+    python-docx==1.1.0 \
+    openai==1.10.0 \
+    httpx==0.26.0 \
+    aiofiles==23.2.1 \
+    python-magic==0.4.27 \
+    structlog==24.1.0 \
+    prometheus-client==0.19.0
+
+# ============================================
+# Stage 2: 运行阶段
+# ============================================
+FROM python:3.11-slim as runtime
+
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    APP_HOME=/app
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 创建非 root 用户
+RUN groupadd -r appgroup && useradd -r -g appgroup -d ${APP_HOME} -s /sbin/nologin appuser
+
+# 创建工作目录
+WORKDIR ${APP_HOME}
+
+# 从构建阶段复制虚拟环境
+COPY --from=builder /opt/venv /opt/venv
+
+# 复制应用代码
+COPY --chown=appuser:appgroup ./app ./app
+COPY --chown=appuser:appgroup ./alembic ./alembic
+COPY --chown=appuser:appgroup ./alembic.ini ./
+
+# 创建必要的目录并设置权限
+RUN mkdir -p ${APP_HOME}/uploads ${APP_HOME}/logs ${APP_HOME}/tmp && \
+    chown -R appuser:appgroup ${APP_HOME}
+
+# 切换到非 root 用户
+USER appuser
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 启动命令
+# 使用 gunicorn + uvicorn workers 运行 FastAPI
+# -w: worker 数量（建议: 2 * CPU核心数 + 1）
+# -k: 使用 uvicorn.workers.UvicornWorker 支持 ASGI
+# --access-logfile: 访问日志
+# --error-logfile: 错误日志
+# --capture-output: 捕获输出
+# --enable-stdio-inheritance: 继承标准输入输出
+CMD ["gunicorn", \
+    "-w", "4", \
+    "-k", "uvicorn.workers.UvicornWorker", \
+    "--bind", "0.0.0.0:8000", \
+    "--access-logfile", "-", \
+    "--error-logfile", "-", \
+    "--capture-output", \
+    "--enable-stdio-inheritance", \
+    "--timeout", "120", \
+    "--keep-alive", "5", \
+    "--max-requests", "1000", \
+    "--max-requests-jitter", "50", \
+    "app.main:app"]
