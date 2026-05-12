@@ -188,8 +188,8 @@ services:
         condition: service_healthy
     networks:
       - thesis-formatter-network
-    expose:
-      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -325,46 +325,10 @@ services:
       - api
     networks:
       - thesis-formatter-network
-    expose:
-      - "80"
+    ports:
+      - "127.0.0.1:5173:80"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-
-  # ============================================
-  # Nginx 反向代理
-  # ============================================
-  nginx:
-    image: nginx:alpine
-    container_name: thesis-formatter-nginx
-    restart: unless-stopped
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - nginx_logs:/var/log/nginx
-    ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
-    depends_on:
-      api:
-        condition: service_healthy
-      web:
-        condition: service_healthy
-    networks:
-      - thesis-formatter-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -387,8 +351,6 @@ volumes:
   redis_data:
     driver: local
   minio_data:
-    driver: local
-  nginx_logs:
     driver: local
 
 # ============================================
