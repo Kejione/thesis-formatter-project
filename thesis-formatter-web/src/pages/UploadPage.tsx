@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Upload, Button, Select, Form, message, Space, Typography, Divider, Alert, Spin } from 'antd'
+import { Card, Upload, Button, Select, Form, message, Space, Typography, Alert, Spin } from 'antd'
 import { InboxOutlined, FileTextOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { createTask } from '@/services/taskApi'
@@ -9,7 +9,7 @@ import { listModels } from '@/services/modelApi'
 import type { Template, ModelConfig } from '@/types'
 
 const { Dragger } = Upload
-const { Title, Text, Paragraph } = Typography
+const { Title, Paragraph } = Typography
 
 function UploadPage() {
   const navigate = useNavigate()

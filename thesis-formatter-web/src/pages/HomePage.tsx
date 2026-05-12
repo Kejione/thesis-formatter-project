@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Card, Row, Col, Typography, Button, Steps, Space, Statistic } from 'antd'
 import { UploadOutlined, RocketOutlined, DownloadOutlined, FileTextOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { getTaskStatus } from '@/services/taskApi'
 
 const { Title, Paragraph, Text } = Typography
 

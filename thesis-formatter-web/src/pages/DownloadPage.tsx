@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Row, Col, Typography, Button, Space, List, Tag, Divider, Spin, message, Empty } from 'antd'
+import { useParams } from 'react-router-dom'
+import { Card, Row, Col, Typography, Button, Space, List, Tag, Spin, message, Empty } from 'antd'
 import { DownloadOutlined, FileWordOutlined, FileMarkdownOutlined, FilePdfOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { getChangelog, downloadFixedDoc } from '@/services/taskApi'
 import type { ChangeLog } from '@/types'
@@ -29,7 +29,6 @@ function formatChangeLocation(loc: ChangeLog['changes'][number]['location']): st
 
 function DownloadPage() {
   const { taskId } = useParams<{ taskId: string }>()
-  const navigate = useNavigate()
   const [changelog, setChangelog] = useState<ChangeLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
@@ -40,7 +39,7 @@ function DownloadPage() {
     async function fetchData() {
       setLoading(true)
       try {
-        const data = await getChangelog(taskId)
+        const data = await getChangelog(taskId!)
         setChangelog(data)
       } catch {
         message.error('获取修改记录失败')
