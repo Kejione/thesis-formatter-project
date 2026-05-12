@@ -20,7 +20,7 @@ COPY package.json package-lock.json* ./
 
 # 安装依赖
 # 使用 ci 而不是 install 以获得确定性的构建
-RUN npm ci --only=production=false
+RUN npm ci
 
 # 复制源代码
 COPY . .
